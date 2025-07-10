@@ -1,29 +1,64 @@
-name: Node.js CI
+name: WebRTC Video Call CI/CD
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: 18
+      - name: Check IP before VPN
+        run: |
+          echo "Public IP before VPN:"
+          curl ifconfig.me
 
-    - name: Install dependencies
-      run: npm install
+      - name: Install OpenVPN
+        run: sudo apt-get update && sudo apt-get install openvpn -y
 
-    - name: Run basic test (if available)
-      run: npm test
-      
-    - name: Lint (optional)
-      run: echo "No lint configured"
+      - name: Create VPN config (VPN2 - no password)
+        run: |
+          echo "${{ secrets.VPN2_CONFIG }}" > vpn2.conf
+
+      - name: Start VPN (VPN2 - no password)
+        run: |
+          echo "Starting VPN 2..."
+          sudo openvpn --config vpn2.conf --daemon --log vpn2.log
+          sleep 20
+          if ! sudo grep -q "Initialization Sequence Completed" vpn2.log; then
+            echo "VPN 2 failed to connect. Showing logs:"
+            sudo cat vpn2.log || echo "No vpn2.log"
+            exit 1
+          fi
+          echo "VPN 2 connected successfully."
+
+      - name: Check IP after VPN
+        run: |
+          echo "Public IP after VPN:"
+          curl ifconfig.me
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy WebRTC App to EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_IP }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            cd /home/ubuntu/webrtc-video-call-example-nodejs
+            git pull origin main
+            npm install
+            pm2 restart webrtc-app || pm2 start index.js --name webrtc-app
