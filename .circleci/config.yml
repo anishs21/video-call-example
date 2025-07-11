@@ -30,7 +30,7 @@ jobs:
       - run:
           name: Deploy to EC2 via SSH
           command: |
-            ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_IP << 'EOF'
+            ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_IP \<< 'EOF'
               cd /home/ubuntu/webrtc-video-call-example-nodejs
               git pull origin main
               npm install
