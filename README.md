@@ -10,3 +10,4 @@ A example app of webrtc using socket.io for signalling and public STUN/TURN serv
 
 ## For detailed tutorial:  
 [WebRTC Code Lab](https://codelabs.developers.google.com/codelabs/webrtc-web/#7)
+echo "// test trigger" >> README.md
