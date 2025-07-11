@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   build:
     docker:
-      - image: cimg/node:18.20.2  # Use a stable Node.js image
+      - image: cimg/node:18.20.2
     steps:
       - checkout
 
@@ -14,7 +14,7 @@ jobs:
       - persist_to_workspace:
           root: .
           paths:
-            - build
+            - .
 
   deploy:
     docker:
@@ -30,11 +30,11 @@ jobs:
       - run:
           name: Deploy to EC2 via SSH
           command: |
-            ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_IP \<< 'EOF'
-              cd /home/ubuntu/simple-react-app
+            ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_IP << 'EOF'
+              cd /home/ubuntu/webrtc-video-call-example-nodejs
               git pull origin main
               npm install
-              pm2 restart react-app || pm2 start npm --name react-app -- start
+              pm2 restart webrtc || pm2 start index.js --name webrtc
             EOF
 
 workflows:
